@@ -1,0 +1,53 @@
+-- 1. Создание БД и таблиц
+CREATE DATABASE IF NOT EXISTS Supply;
+USE Supply;
+
+CREATE TABLE IF NOT EXISTS Товар (
+    артикул INT PRIMARY KEY CHECK (артикул REGEXP '^[0-9]+$'),
+    название VARCHAR(255),
+    категория VARCHAR(100),
+    количество_на_складе INT
+);
+
+CREATE TABLE IF NOT EXISTS Поставка (
+    номер_накладной INT PRIMARY KEY,
+    артикул_товара INT,
+    количество INT,
+    дата_продажи DATE,
+    FOREIGN KEY (артикул_товара) REFERENCES Товар(артикул)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 2. Вставка данных
+INSERT INTO Товар VALUES 
+(5001, 'Монитор', 'Электроника', 50),
+(5002, 'Ручка', 'Канцелярия', 200),
+(5003, 'Стол', 'Мебель', 15);
+
+INSERT INTO Поставка VALUES 
+(7001, 5001, 10, CURDATE()),
+(7002, 5002, 50, '2023-10-05'),
+(7003, 5003, 5, '2023-09-12');
+
+-- 3. SQL-запросы
+-- 1) Представление Товары1
+CREATE VIEW Товары1 AS
+SELECT t.артикул, t.название, SUM(p.количество) AS общее_проданное
+FROM Товар t
+LEFT JOIN Поставка p ON t.артикул = p.артикул_товара
+GROUP BY t.артикул;
+
+-- 2) Представление Продажи1
+CREATE VIEW Продажи1 AS
+SELECT t.название, p.дата_продажи, p.количество
+FROM Поставка p
+JOIN Товар t ON p.артикул_товара = t.артикул;
+
+-- 3) Продажи по датам
+SELECT дата_продажи, SUM(количество) 
+FROM Продажи1 
+GROUP BY дата_продажи;
+
+-- 4) Товары выше среднего
+SELECT * FROM Товары1 
+WHERE общее_проданное > (SELECT AVG(общее_проданное) FROM Товары1);

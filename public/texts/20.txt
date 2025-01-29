@@ -1,0 +1,44 @@
+-- 1. Создание БД и таблиц
+CREATE DATABASE IF NOT EXISTS Exams;
+USE Exams;
+
+CREATE TABLE IF NOT EXISTS Преподаватель (
+    табельный_номер INT PRIMARY KEY CHECK (табельный_номер REGEXP '^[0-9]+$'),
+    ФИО VARCHAR(255),
+    дата_приема DATE,
+    категория ENUM('первая', 'вторая', 'высшая')
+);
+
+CREATE TABLE IF NOT EXISTS Экзамен (
+    номер_направления INT PRIMARY KEY AUTO_INCREMENT,
+    табельный_номер_преподавателя INT,
+    ФИО_учащегося VARCHAR(255),
+    предмет VARCHAR(100),
+    дата_сдачи DATE,
+    оценка INT,
+    FOREIGN KEY (табельный_номер_преподавателя) REFERENCES Преподаватель(табельный_номер)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 2. Триггер
+DELIMITER $$
+CREATE TRIGGER АвтоЭкзамен
+AFTER INSERT ON Преподаватель
+FOR EACH ROW
+BEGIN
+    INSERT INTO Экзамен (табельный_номер_преподавателя, ФИО_учащегося, предмет, дата_сдачи, оценка)
+    VALUES (NEW.табельный_номер, 'Студент1', 'Предмет1', CURDATE(), 4);
+END $$
+DELIMITER ;
+
+-- 3. Демонстрация триггера
+INSERT INTO Преподаватель VALUES (401, 'Новый Преподаватель', CURDATE(), 'вторая');
+
+-- 4) Экзамены сегодня
+SELECT ФИО 
+FROM Преподаватель 
+WHERE табельный_номер IN (
+    SELECT табельный_номер_преподавателя 
+    FROM Экзамен 
+    WHERE дата_сдачи = CURDATE()
+);

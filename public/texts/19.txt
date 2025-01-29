@@ -1,0 +1,46 @@
+-- 1. Создание БД и таблиц
+CREATE DATABASE IF NOT EXISTS Supply;
+USE Supply;
+
+CREATE TABLE IF NOT EXISTS Товар (
+    артикул INT PRIMARY KEY CHECK (артикул REGEXP '^[0-9]+$'),
+    название VARCHAR(255),
+    категория VARCHAR(100),
+    количество_на_складе INT
+);
+
+CREATE TABLE IF NOT EXISTS Поставка (
+    номер_накладной INT PRIMARY KEY,
+    артикул_товара INT,
+    количество INT,
+    дата_поставки DATE,
+    FOREIGN KEY (артикул_товара) REFERENCES Товар(артикул)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 2. Триггер
+DELIMITER $$
+CREATE TRIGGER ОбновлениеСклада
+AFTER INSERT ON Поставка
+FOR EACH ROW
+BEGIN
+    UPDATE Товар 
+    SET количество_на_складе = количество_на_складе + NEW.количество 
+    WHERE артикул = NEW.артикул_товара;
+END $$
+DELIMITER ;
+
+-- 3. Демонстрация триггера
+INSERT INTO Товар VALUES (7001, 'Смартфон', 'Электроника', 0);
+INSERT INTO Поставка VALUES (9001, 7001, 50, CURDATE());
+
+-- 4) Товары текущего месяца
+SELECT название 
+FROM Товар 
+
+WHERE артикул IN (
+    SELECT артикул_товара 
+    FROM Поставка 
+    WHERE MONTH(дата_поставки) = MONTH(CURDATE())
+);
+

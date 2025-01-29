@@ -1,0 +1,51 @@
+-- 1. Создание БД и таблиц
+CREATE DATABASE IF NOT EXISTS Supply;
+USE Supply;
+
+CREATE TABLE IF NOT EXISTS Товар (
+    артикул INT PRIMARY KEY CHECK (артикул REGEXP '^[0-9]+$'),
+    название VARCHAR(255),
+    категория VARCHAR(100)
+);
+
+CREATE TABLE IF NOT EXISTS Поставка (
+    номер_накладной INT PRIMARY KEY,
+    артикул_товара INT,
+    цена DECIMAL(10,2),
+    количество INT,
+    дата_поступления DATE,
+    FOREIGN KEY (артикул_товара) REFERENCES Товар(артикул)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 2. Вставка данных
+INSERT INTO Товар VALUES 
+(6001, 'Принтер', 'Офисная техника'),
+(6002, 'Лампа', 'Освещение');
+
+INSERT INTO Поставка VALUES 
+(8001, 6001, 15000.00, 5, '2023-12-10'),
+(8002, 6002, 2000.50, 10, '2023-11-25');
+
+-- 3. SQL-запросы
+-- 1) Товары, поступившие зимой
+SELECT название, категория 
+FROM Товар 
+WHERE артикул IN (
+    SELECT артикул_товара 
+    FROM Поставка 
+    WHERE MONTH(дата_поступления) IN (12, 1, 2)
+);
+
+-- 2) Хранимая процедура
+DELIMITER $$
+CREATE PROCEDURE СредняяЦена(IN товар_артикул INT)
+BEGIN
+    SELECT AVG(цена) AS средняя_цена 
+    FROM Поставка 
+    WHERE артикул_товара = товар_артикул;
+END $$
+DELIMITER ;
+
+-- 3) Вызов процедуры
+CALL СредняяЦена(6001);

@@ -1,0 +1,48 @@
+-- 1. Создание БД и таблиц
+CREATE DATABASE IF NOT EXISTS University;
+USE University;
+
+CREATE TABLE IF NOT EXISTS Филиал (
+    номер INT PRIMARY KEY CHECK (номер REGEXP '^[0-9]+$'),
+    адрес VARCHAR(255),
+    дата_аккредитации DATE
+);
+
+CREATE TABLE IF NOT EXISTS Группа (
+    номер_группы INT PRIMARY KEY,
+    номер_филиала INT,
+    курс INT,
+    количество_учащихся INT,
+    FOREIGN KEY (номер_филиала) REFERENCES Филиал(номер)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- 2. Вставка данных
+INSERT INTO Филиал VALUES 
+(4, 'ул. Пушкина, 7', '2023-09-22'),
+(5, 'пр. Ленина, 15', '2023-11-30');
+
+INSERT INTO Группа VALUES 
+(401, 4, 2, 25),
+(402, 4, 1, 30),
+(501, 5, 3, 18);
+
+-- 3. SQL-запросы
+-- 1) Группы с осенней аккредитацией
+SELECT f.адрес, g.номер_группы 
+FROM Филиал f
+JOIN Группа g ON f.номер = g.номер_филиала
+WHERE MONTH(f.дата_аккредитации) BETWEEN 9 AND 11;
+
+-- 2) Хранимая процедура
+DELIMITER $$
+CREATE PROCEDURE КоличествоГрупп(IN филиал_id INT)
+BEGIN
+    SELECT COUNT(*) AS количество_групп 
+    FROM Группа 
+    WHERE номер_филиала = филиал_id;
+END $$
+DELIMITER ;
+
+-- 3) Вызов процедуры
+CALL КоличествоГрупп(4);
