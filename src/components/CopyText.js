@@ -5,7 +5,7 @@ export default function CopyText() {
 
   const handleCopy = async () => {
     const num = parseInt(number, 10);
-    if (num >= 1 && num <= 30) {
+    if (num >= 1 && num <= 31) {
       try {
         // Загружаем содержимое файла из публичной директории
         const response = await fetch(`/texts/${num}.txt`);
