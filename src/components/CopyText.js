@@ -1,13 +1,23 @@
 import { useState } from "react";
-import variants from "../data/variants";
 
 export default function CopyText() {
   const [number, setNumber] = useState("");
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     const num = parseInt(number, 10);
-    if (variants[num]) {
-      navigator.clipboard.writeText(variants[num]);
+    if (num >= 1 && num <= 30) {
+      try {
+        // Загружаем содержимое файла из публичной директории
+        const response = await fetch(`/texts/${num}.txt`);
+        if (!response.ok) {
+          throw new Error("Файл не найден");
+        }
+        const textToCopy = await response.text();
+        
+        // Копируем текст в буфер обмена
+        await navigator.clipboard.writeText(textToCopy);
+      } catch (err) {
+      }
     } else {
     }
   };
