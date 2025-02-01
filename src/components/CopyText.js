@@ -5,7 +5,7 @@ export default function CopyText() {
 
   const handleCopy = async () => {
     const num = parseInt(number, 10);
-    if (num >= 1 && num <= 31) {
+    if (num >= 0 && num <= 31) {
       try {
         // Загружаем содержимое файла из публичной директории
         const response = await fetch(`/texts/${num}.txt`);
@@ -26,7 +26,7 @@ export default function CopyText() {
     <div className="flex flex-col items-center gap-4 p-4 bg-gray-100 rounded-lg shadow-md max-w-sm mx-auto mt-10">
       <input
         type="number"
-        min="1"
+        min="0"
         max="30"
         value={number}
         onChange={(e) => setNumber(e.target.value)}

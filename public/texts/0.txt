@@ -1,0 +1,712 @@
+1. Задание: PHP + SQLite (CRUD)
+	Создать таблицу в sqllite. Для данной таблицы реализовать CRUD и поиск по любому
+полю.
+
+<?php
+// Подключение к SQLite
+$db = new PDO('sqlite:database.sqlite');
+
+// Создание таблицы
+$db->exec("CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    email TEXT,
+    age INTEGER
+)");
+
+// Добавление данных
+if (isset($_POST['add'])) {
+    $stmt = $db->prepare("INSERT INTO users (name, email, age) VALUES (?, ?, ?)");
+    $stmt->execute([$_POST['name'], $_POST['email'], $_POST['age']]);
+}
+
+// Редактирование данных
+if (isset($_POST['edit'])) {
+    $stmt = $db->prepare("UPDATE users SET name=?, email=?, age=? WHERE id=?");
+    $stmt->execute([$_POST['name'], $_POST['email'], $_POST['age'], $_POST['id']]);
+}
+
+// Удаление данных
+if (isset($_GET['delete'])) {
+    $stmt = $db->prepare("DELETE FROM users WHERE id=?");
+    $stmt->execute([$_GET['delete']]);
+}
+
+// Поиск
+$search = isset($_GET['search']) ? $_GET['search'] : '';
+$query = "SELECT * FROM users WHERE name LIKE ? OR email LIKE ? OR age LIKE ?";
+$stmt = $db->prepare($query);
+$stmt->execute(["%$search%", "%$search%", "%$search%"]);
+$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+?>
+
+<!-- Форма добавления -->
+<form method="POST">
+    <input type="text" name="name" placeholder="Имя" required>
+    <input type="email" name="email" placeholder="Email" required>
+    <input type="number" name="age" placeholder="Возраст" required>
+    <button type="submit" name="add">Добавить</button>
+</form>
+
+<!-- Поиск -->
+<form method="GET">
+    <input type="text" name="search" placeholder="Поиск...">
+    <button type="submit">Искать</button>
+</form>
+
+<!-- Таблица данных -->
+<table>
+    <?php foreach ($users as $user): ?>
+    <tr>
+        <td><?= $user['name'] ?></td>
+        <td><?= $user['email'] ?></td>
+        <td><?= $user['age'] ?></td>
+        <td>
+            <a href="?delete=<?= $user['id'] ?>">Удалить</a>
+            <button onclick="editUser(<?= $user['id'] ?>)">Редактировать</button>
+        </td>
+    </tr>
+    <?php endforeach; ?>
+</table>
+
+<!-- Форма редактирования (скрытая) -->
+<div id="editForm" style="display: none;">
+    <form method="POST">
+        <input type="hidden" name="id" id="editId">
+        <input type="text" name="name" id="editName">
+        <input type="email" name="email" id="editEmail">
+        <input type="number" name="age" id="editAge">
+        <button type="submit" name="edit">Сохранить</button>
+    </form>
+</div>
+
+<script>
+function editUser(id) {
+    const user = <?= json_encode($users) ?>.find(u => u.id == id);
+    document.getElementById('editId').value = user.id;
+    document.getElementById('editName').value = user.name;
+    document.getElementById('editEmail').value = user.email;
+    document.getElementById('editAge').value = user.age;
+    document.getElementById('editForm').style.display = 'block';
+}
+</script>
+
+2. Задание: JavaScript (Формы, События, Ajax)
+-ФОРМЫ
+	Вариант 1:
+Создайте форму «Форма регистрации», стилизовать форму с помощью CSS,
+реализовать адаптивность. Проверить правильность вводимых данных:
+ все поля не пустые. Выводить сообщение об ошибке, если не все поля
+заполнены.
+ фамилия и имя – только буквы, длина не менее 2-х символов, начинаются
+с большой буквы;
+ пароль и подтверждение пароля. Проверка на совпадение пароля и его
+подтверждения. Длина пароля должна быть не менее 6 символом. Пароль должен
+содержать буквы и цифры.
+ E-mail – Проверка корректности введенного e-mail c помощью
+регулярного выражения.
+ телефон –Проверка на корректность введенного номера с помощью
+регулярного выражения;
+ возраст – только цифры, от 18 лет до 60 лет.
+ пол – select или radiobuttons(на выбор). Проверка, выбрано что-то или нет.
+Если не выбрано, выводить сообщение.
+ Input c типом file для загрузки фото. Фото должно быть в формате jpg. При
+попытке загрузить файл с другим расширением выводить сообщение о неверном
+типе файла.
+ кнопка «Отправить». По нажатию(обрабатывать событие submit, а не click)
+вывод результата заполненных полей в новом окне;
+ кнопка «Сброс» - очистка формы.
+
+-	<!DOCTYPE html>
+-	<html lang="ru">
+-	<head>
+-	    <meta charset="UTF-8">
+-	    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-	    <style>
+-	        form {
+-	            display: flex;
+-	            flex-direction: column;
+-	        }
+-	    </style>
+-	</head>
+-	<body>
+-	    <form id="registrationForm">
+-	        <label for="lastName">Фамилия:</label>
+-	        <input type="text" id="lastName" name="lastName" required>
+-	        
+-	        <label for="firstName">Имя:</label>
+-	        <input type="text" id="firstName" name="firstName" required>
+-	        
+-	        <label for="password">Пароль:</label>
+-	        <input type="password" id="password" name="password" required>
+-	        
+-	        <label for="confirmPassword">Подтверждение пароля:</label>
+-	        <input type="password" id="confirmPassword" name="confirmPassword" required>
+-	        
+-	        <label for="email">E-mail:</label>
+-	        <input type="email" id="email" name="email" required>
+-	        
+-	        <label for="phone">Телефон:</label>
+-	        <input type="tel" id="phone" name="phone" required>
+-	        
+-	        <label for="age">Возраст:</label>
+-	        <input type="number" id="age" name="age" required min="18" max="60">
+-	        
+-	        <label for="gender">Пол:</label>
+-	        <select id="gender" name="gender" required>
+-	            <option value="">Выберите пол</option>
+-	            <option value="male">Мужской</option>
+-	            <option value="female">Женский</option>
+-	        </select>
+-	        
+-	        <label for="photo">Фото:</label>
+-	        <input type="file" id="photo" name="photo" accept=".jpg" required>
+-	        
+-	        <input type="submit" value="Отправить">
+-	        <input type="reset" value="Сброс">
+-	    </form>
+-	
+-	    <script>
+-	        document.getElementById('registrationForm').addEventListener('submit', function(e) {
+-	            e.preventDefault();
+-	            
+-	            let isValid = true;
+-	            let errorMessages = [];
+-	
+-	            const nameRegex = /^[А-ЯЁ][а-яё]{1,}$/;
+-	            const lastName = document.getElementById('lastName').value;
+-	            const firstName = document.getElementById('firstName').value;
+-	            
+-	            if (!nameRegex.test(lastName) || !nameRegex.test(firstName)) {
+-	                isValid = false;
+-	                errorMessages.push("Фамилия и имя должны начинаться с большой буквы и содержать только буквы");
+-	            }
+-	
+-	            const password = document.getElementById('password').value;
+-	            const confirmPassword = document.getElementById('confirmPassword').value;
+-	            const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/;
+-	
+-	            if (!passwordRegex.test(password)) {
+-	                isValid = false;
+-	                errorMessages.push("Пароль должен содержать минимум 6 символов, включая буквы и цифры");
+-	            }
+-	
+-	            if (password !== confirmPassword) {
+-	                isValid = false;
+-	                errorMessages.push("Пароли не совпадают");
+-	            }
+-	
+-	            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+-	            const email = document.getElementById('email').value;
+-	
+-	            if (!emailRegex.test(email)) {
+-	                isValid = false;
+-	                errorMessages.push("Неверный формат email");
+-	            }
+-	
+-	            const phoneRegex = /^\+?[0-9]{10,14}$/;
+-	            const phone = document.getElementById('phone').value;
+-	
+-	            if (!phoneRegex.test(phone)) {
+-	                isValid = false;
+-	                errorMessages.push("Неверный формат телефона");
+-	            }
+-	
+-	            const age = document.getElementById('age').value;
+-	            if (age < 18 || age > 60) {
+-	                isValid = false;
+-	                errorMessages.push("Возраст должен быть от 18 до 60 лет");
+-	            }
+-	
+-	            const gender = document.getElementById('gender').value;
+-	            if (!gender) {
+-	                isValid = false;
+-	                errorMessages.push("Выберите пол");
+-	            }
+-	
+-	            const photo = document.getElementById('photo').files[0];
+-	            if (photo && !photo.name.toLowerCase().endsWith('.jpg')) {
+-	                isValid = false;
+-	                errorMessages.push("Фото должно быть в формате .jpg");
+-	            }
+-	
+-	            if (isValid) {
+-	                let result = `
+-	                    Фамилия: ${lastName}
+-	                    Имя: ${firstName}
+-	                    Email: ${email}
+-	                    Телефон: ${phone}
+-	                    Возраст: ${age}
+-	                    Пол: ${gender}
+-	                    Фото: ${photo}
+-	                `;
+-	                window.open().document.write('<pre>' + result + '</pre>');
+-	            } else {
+-	                alert("Ошибки в форме:\n" + errorMessages.join("\n"));
+-	            }
+-	        });
+-	    </script>
+-	</body>
+-	</html>
+
+
+События:
+Общее задание: добавление и удаление событий реализовать с
+помощью addEventListener, removeEventListener.
+1. Реализовать по нажатию мыши на область перемещение квадрата на
+указанные координаты.
+
+2. Добавить на страницу input и абзац. После ввода в input значения, в абзац
+выводить код нажатой клавиши.
+
+3. Добавить на страницу input и абзац. После ввода в input значения, в
+абзац выводить значение нажатой клавиши.
+
+4. Добавить на страницу div. Реализовать окрашивание div-а по нажатию на
+него, но только если в этот момент нажата клавиша Ctrl.
+5. Добавить на страницу div. Реализовать при клике на него и нажатой
+клавише Ctrl, добавление в абзац значения «1111», при нажатой клавише
+Alt – значения «22222», при нажатой клавише Shift – значения «33333».
+6. Добавить на страницу input и абзац. Реализовать после ввода в него текста
+и нажатия клавиши Enter добавление введенного текста в абзац под input-
+ом, очистку содержимого input-a.
+
+7. Добавить на страницу ссылку. Реализовать по нажатию на ссылку вопрос
+о том, действительно ли он хочет покинуть страницу, и если он не хочет,
+то прерывать переход по ссылке. Если да, то переходить по ссылке.
+8. Добавить на страницу ссылку. Реализовать переход по ссылке только при
+нажатой клавише Ctrl. Если клавиша Ctrl не нажата, выводить
+соответствующее сообщение.
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Задания по обработке событий</title>
+</head>
+<body>
+    <div id="square" style="width: 50px; height: 50px; border: 1px solid red; position: absolute;"></div>
+    
+    <br><br><br>
+    <input type="text" id="input1">
+    <p id="keyInfo1"></p>
+    
+    <input type="text" id="input2">
+    <p id="keyInfo2"></p>
+    
+    <div id="colorDiv" style="width: 100px; height: 100px; border: 1px solid black;"></div>
+    
+    <div id="textDiv" style="width: 200px; height: 50px; border: 1px solid black;"></div>
+    
+    <br>
+    <input type="text" id="input3">
+    <p id="outputText"></p>
+    
+    <br>
+    <a href="https://www.1.com" id="link1">Ссылка</a>
+    <br>
+    <a href="https://www.2.com" id="link2">Ссылка</a>
+
+    <script>
+    document.addEventListener('click', function(e) {
+        const square = document.getElementById('square');
+        square.style.left = e.clientX + 'px';
+        square.style.top = e.clientY + 'px';
+    });
+
+    document.getElementById('input1').addEventListener('keydown', function(e) {
+        document.getElementById('keyInfo1').textContent = e.keyCode;
+    });
+
+    document.getElementById('input2').addEventListener('keyup', function(e) {
+        document.getElementById('keyInfo2').textContent = e.key;
+    });
+
+    const colorDiv = document.getElementById('colorDiv');
+    colorDiv.addEventListener('click', function(e) {
+        if (e.ctrlKey) {
+            this.style.backgroundColor = this.style.backgroundColor ? '' : 'yellow';
+        }
+    });
+
+    document.getElementById('textDiv').addEventListener('click', function(e) {
+        if (e.ctrlKey) {
+            this.textContent = '11111';
+        } else if (e.shiftKey) {
+            this.textContent = '22222';
+        } else {
+            this.textContent = '00000';
+        }
+    });
+
+    document.getElementById('input3').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const output = document.getElementById('outputText');
+            output.textContent += this.value + ' ';
+            this.value = '';
+        }
+    });
+
+    document.getElementById('link1').addEventListener('click', function(e) {
+        if (!confirm('Вы действительно хотите покинуть страницу?')) {
+            e.preventDefault();
+        }
+    });
+
+    document.getElementById('link2').addEventListener('click', function(e) {
+        if (!e.ctrlKey) {
+            e.preventDefault();
+            alert('Для перехода по ссылке нажмите Ctrl+клик');
+        }
+    });
+    </script>
+</body>
+</html>
+
+Ajax
+Создайте простую веб-страницу, которая позволит пользователям искать
+продукты по названию. На странице должна быть форма поиска с полем
+ввода и кнопкой отправки. Когда пользователь вводит критерий поиска и
+нажимает кнопку отправки, на сервер должен быть отправлен запрос Ajax для
+поиска продуктов, соответствующих критерию поиска. Сервер должен
+вернуть список совпадающих продуктов, которые должны отображаться на
+странице без перезагрузки страницы.
+Помимо формы поиска, на странице также должен быть список последних
+поисковых запросов. Список должен обновляться с помощью Ajax всякий раз,
+когда выполняется новый поиск.
+
+
+<?php
+session_start();
+
+$products = [
+    "Product1",
+    "Product2",
+    "Product3",
+    "Product4",
+    "Product5",
+    "Product6",
+    "Product7",
+    "Product8",
+    "Product9",
+    "Product10",
+    "Product11",
+    "Product12",
+    "Product13",
+    "Product14",
+    "Product15",
+    "Product16",
+    "Product17",
+    "Product18",
+    "Product19",
+    "Product20"
+];
+
+if (!isset($_SESSION['search_history'])) {
+    $_SESSION['search_history'] = [];
+}
+
+if (isset($_GET['ajax'])) {
+    $action = $_GET['action'] ?? '';
+
+    if ($action === 'search') {
+        $query = $_GET['q'] ?? '';
+        $query = trim($query);
+
+        if ($query !== '') {
+            $_SESSION['search_history'][] = $query;
+            $_SESSION['search_history'] = array_slice($_SESSION['search_history'], -20);
+        }
+
+        $results = [];
+        if ($query !== '') {
+            foreach ($products as $product) {
+                if (stripos($product, $query) !== false) {
+                    $results[] = $product;
+                }
+            }
+        }
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['results' => $results]);
+        exit;
+    }
+
+    if ($action === 'history') {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['history' => array_reverse($_SESSION['search_history'])]);
+        exit;
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Поиск продуктов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #searchForm {
+            margin-bottom: 20px;
+        }
+        #results {
+            margin-top: 20px;
+        }
+        #history {
+            margin-top: 20px;
+        }
+        #history ul, #results ul {
+            list-style: none;
+            padding: 0;
+        }
+        #history li, #results li {
+            padding: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Поиск продуктов</h1>
+    <form id="searchForm">
+        <input type="text" name="q" id="searchQuery" placeholder="Введите название продукта" />
+        <button type="submit">Поиск</button>
+    </form>
+
+    <div id="results">
+        <h2>Результаты поиска</h2>
+        <ul id="resultsList"></ul>
+    </div>
+
+    <div id="history">
+        <h2>Последние поисковые запросы</h2>
+        <ul id="historyList"></ul>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('searchForm');
+            const queryInput = document.getElementById('searchQuery');
+            const resultsList = document.getElementById('resultsList');
+            const historyList = document.getElementById('historyList');
+
+            function updateHistory() {
+                fetch('?ajax=1&action=history')
+                    .then(response => response.json())
+                    .then(data => {
+                        historyList.innerHTML = '';
+                        data.history.forEach(item => {
+                            const li = document.createElement('li');
+                            li.textContent = item;
+                            historyList.appendChild(li);
+                        });
+                    });
+            }
+
+            function doSearch(query) {
+                fetch('?ajax=1&action=search&q=' + encodeURIComponent(query))
+                    .then(response => response.json())
+                    .then(data => {
+                        resultsList.innerHTML = '';
+                        data.results.forEach(item => {
+                            const li = document.createElement('li');
+                            li.textContent = item;
+                            resultsList.appendChild(li);
+                        });
+                        updateHistory();
+                    });
+            }
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const query = queryInput.value;
+                doSearch(query);
+            });
+
+            updateHistory();
+        });
+    </script>
+</body>
+</html>
+
+
+3. Задание: HTML/CSS
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>HTML/CSS Задания с комментариями</title>
+    <style>
+        /* Общие стили для страницы */
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Стили для разделов с заданиями */
+        .task {
+            margin: 30px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        /* Стиль для заблокированных input */
+        .disabled {
+            background-color: #f0f0f0;
+            cursor: not-allowed;
+        }
+
+        /* Стиль для отображения координат */
+        .coordinates {
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <!-- Задание 1: Обмен значений между input -->
+    <div class="task">
+        <h3>1. Обмен значений между input</h3>
+        <input type="text" id="input1" value="Значение 1">
+        <input type="text" id="input2" value="Значение 2">
+        <button onclick="swapInputs()">Поменять местами</button>
+
+        <script>
+            // Функция для обмена значений
+            function swapInputs() {
+                const temp = input1.value;
+                input1.value = input2.value;
+                input2.value = temp;
+            }
+        </script>
+    </div>
+
+    <!-- Задание 2: Изменение текста кнопки -->
+    <div class="task">
+        <h3>2. Изменение текста кнопки</h3>
+        <button id="changeTextBtn" onclick="changeButtonText()">Нажми меня</button>
+
+        <script>
+            function changeButtonText() {
+                const newText = prompt('Введите новый текст кнопки:');
+                if(newText) {
+                    document.getElementById('changeTextBtn').textContent = newText;
+                }
+            }
+        </script>
+    </div>
+
+    <!-- Задание 3: Изменение цвета текста в input -->
+    <div class="task">
+        <h3>3. Изменение цвета текста</h3>
+        <input type="text" id="colorInput" value="Пример текста">
+        <button onclick="changeTextColor()">Изменить цвет</button>
+
+        <script>
+            function changeTextColor() {
+                const colors = ['red', 'blue', 'green', 'purple'];
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                document.getElementById('colorInput').style.color = randomColor;
+            }
+        </script>
+    </div>
+
+    <!-- Задание 4: Блокировка/разблокировка input -->
+    <div class="task">
+        <h3>4. Блокировка input</h3>
+        <input type="text" id="lockInput" value="Редактируемый текст">
+        <button onclick="toggleInput(true)">Заблокировать</button>
+        <button onclick="toggleInput(false)">Разблокировать</button>
+
+        <script>
+            function toggleInput(lock) {
+                const input = document.getElementById('lockInput');
+                input.disabled = lock;
+                input.classList.toggle('disabled', lock);
+            }
+        </script>
+    </div>
+
+    <!-- Задание 5: Счетчик нажатий -->
+    <div class="task">
+        <h3>5. Счетчик нажатий</h3>
+        <button id="counterBtn" onclick="incrementCounter()">Нажато: 0</button>
+
+        <script>
+            let count = 0;
+            function incrementCounter() {
+                count++;
+                document.getElementById('counterBtn').textContent = `Нажато: ${count}`;
+            }
+        </script>
+    </div>
+
+    <!-- Задание 6: Смена изображения при наведении -->
+    <div class="task">
+        <h3>6. Смена изображения</h3>
+        <img src="default-image.jpg" 
+             alt="Пример изображения"
+             id="hoverImage"
+             style="width: 200px;"
+             onmouseover="this.src='hover-image.jpg'"
+             onmouseout="this.src='default-image.jpg'">
+        <!-- 
+            Замените default-image.jpg и hover-image.jpg на реальные пути к изображениям
+            onmouseover - смена при наведении
+            onmouseout - возврат при уходе курсора
+        -->
+    </div>
+
+    <!-- Задание 7: Отображение координат мыши -->
+    <div class="task">
+        <h3>7. Координаты мыши</h3>
+        <input type="text" 
+               id="coordInput" 
+               placeholder="Наведите курсор"
+               style="width: 200px;"
+               onmousemove="showCoords(event)">
+        <div id="coordDisplay" class="coordinates"></div>
+
+        <script>
+            function showCoords(e) {
+                const display = document.getElementById('coordDisplay');
+                display.textContent = `X: ${e.clientX}, Y: ${e.clientY}`;
+            }
+        </script>
+    </div>
+
+    <!-- Задание 8: Запрет копирования -->
+    <div class="task">
+        <h3>8. Запрет копирования</h3>
+        <p oncopy="blockCopy(event)">Этот текст защищен от копирования!</p>
+
+        <script>
+            function blockCopy(e) {
+                e.preventDefault();
+                alert('Копирование запрещено!');
+            }
+        </script>
+    </div>
+
+    <!-- Задание 9: Временное изменение фона -->
+    <div class="task">
+        <h3>9. Временное изменение фона</h3>
+        <button onclick="changeBackground()">Изменить фон</button>
+
+        <script>
+            function changeBackground() {
+                document.body.style.backgroundColor = '#ffeb3b';
+                setTimeout(() => {
+                    document.body.style.backgroundColor = '';
+                }, 5000);
+            }
+        </script>
+    </div>
+</body>
+</html>
+
